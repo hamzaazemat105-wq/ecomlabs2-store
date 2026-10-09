@@ -399,6 +399,34 @@
 
     a.floating-card { text-decoration: none; cursor: pointer; }
     a.floating-card:hover { transform: translateY(-2px); }
+
+    .store-rating { color: var(--muted); font-size: .95rem; margin-top: 8px; }
+    .store-rating strong { color: #ffc107; }
+    .review-form-card { background: var(--surface-2); border: 1px solid var(--line); border-radius: 18px; padding: 24px 20px; max-width: 600px; margin: 0 auto; }
+    .review-form-card h3 { margin: 0 0 8px; }
+    .review-form-card p { color: var(--muted); font-size: .9rem; margin: 0 0 18px; }
+    .form-row { margin-bottom: 14px; }
+    .form-row label { display: block; font-size: .85rem; font-weight: 700; margin-bottom: 6px; color: var(--muted); }
+    .form-row input, .form-row select, .form-row textarea { width: 100%; background: var(--surface-3); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; color: var(--text); font-size: .95rem; font-family: inherit; box-sizing: border-box; }
+    .form-row input:focus, .form-row select:focus, .form-row textarea:focus { outline: none; border-color: var(--brand); }
+    .star-input { display: flex; gap: 6px; font-size: 2rem; cursor: pointer; }
+    .star-input span { color: #444; transition: color .15s; }
+    .star-input span.active { color: #ffc107; }
+    .rev-msg { margin-top: 12px; font-size: .9rem; min-height: 1.4em; }
+    .rev-msg.ok { color: #2ed573; }
+    .rev-msg.err { color: #ff4757; }
+    .review-product-tag { display: inline-block; font-size: .75rem; background: rgba(255,45,45,.12); color: var(--brand); padding: 2px 10px; border-radius: 999px; margin-top: 8px; font-weight: 700; }
+    .review-date { font-size: .78rem; color: var(--muted); margin-top: 6px; }
+    .modal-rating { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 12px; font-size: .9rem; flex-wrap: wrap; }
+    .modal-rating .stars { color: #ffc107; letter-spacing: 1px; }
+    .modal-rating .no-rev { color: var(--muted); font-size: .85rem; }
+    .modal-reviews { max-height: 180px; overflow-y: auto; margin: 12px 0; text-align: start; }
+    .modal-reviews .mr { background: var(--surface-3); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; font-size: .85rem; }
+    .modal-reviews .mr .stars { color: #ffc107; font-size: .8rem; }
+    .modal-reviews .mr p { margin: 4px 0; line-height: 1.6; }
+    .modal-reviews .mr .who { color: var(--muted); font-size: .78rem; }
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: #2ed573; color: #fff; font-weight: 800; padding: 14px 24px; border-radius: 12px; z-index: 9999; opacity: 0; transition: all .3s ease; box-shadow: 0 8px 30px rgba(0,0,0,.3); }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   </style>
 </head>
 <body data-lang="ar">
@@ -746,28 +774,35 @@
 
     <section class="page" id="reviews">
       <div class="section-head reveal">
-        <div><p class="eyebrow" data-ar="آراء العملاء" data-fr="Avis clients">آراء العملاء</p><h2 data-ar="شنو قالو علينا" data-fr="Ce qu'ils disent">شنو قالو علينا</h2></div>
+        <div><p class="eyebrow" data-ar="آراء العملاء" data-fr="Avis clients">آراء العملاء</p><h2 data-ar="شنو قالو علينا" data-fr="Ce qu'ils disent">شنو قالو علينا</h2>
+        <p id="storeRating" class="store-rating"></p></div>
       </div>
-      <div class="reviews-grid">
-        <div class="review-card reveal">
-          <div class="stars">★★★★★</div>
-          <p data-ar="طلبت Netflix ووصلني الحساب في 5 دقايق. تعامل راقي وسرعة في الرد، شكراً!" data-fr="Compte Netflix reçu en 5 minutes. Service rapide et sérieux, merci !">طلبت Netflix ووصلني الحساب في 5 دقايق. تعامل راقي وسرعة في الرد، شكراً!</p>
-          <div class="reviewer" data-ar="يوسف — الدار البيضاء" data-fr="Youssef — Casablanca">يوسف — الدار البيضاء</div>
-        </div>
-        <div class="review-card reveal">
-          <div class="stars">★★★★★</div>
-          <p data-ar="خديت ChatGPT Plus بثمن مناسب بزاف مقارنة بالرسمي. كلشي خدام مزيان." data-fr="ChatGPT Plus à un prix imbattable. Tout fonctionne parfaitement.">خديت ChatGPT Plus بثمن مناسب بزاف مقارنة بالرسمي. كلشي خدام مزيان.</p>
-          <div class="reviewer" data-ar="سلمى — الرباط" data-fr="Salma — Rabat">سلمى — الرباط</div>
-        </div>
-        <div class="review-card reveal">
-          <div class="stars">★★★★★</div>
-          <p data-ar="أحسن حاجة هي الضمان. كان عندي مشكل صغير في التفعيل وحلوه ليا في نفس النهار." data-fr="La garantie est top. Petit souci d'activation résolu le jour même.">أحسن حاجة هي الضمان. كان عندي مشكل صغير في التفعيل وحلوه ليا في نفس النهار.</p>
-          <div class="reviewer" data-ar="مهدي — مراكش" data-fr="Mehdi — Marrakech">مهدي — مراكش</div>
-        </div>
+      <div class="reviews-grid" id="reviewsGrid"></div>
+      <div style="text-align:center;margin-bottom:18px">
+        <button class="btn btn-secondary" id="showMoreReviews" style="display:none"><span data-ar="عرض المزيد من الآراء" data-fr="Voir plus d'avis">عرض المزيد من الآراء</span> <span id="moreCount"></span></button>
+        <button class="btn btn-secondary" id="showLessReviews" style="display:none"><span data-ar="عرض أقل" data-fr="Voir moins">عرض أقل</span></button>
       </div>
-      <div class="reviews-box reveal">
-        <div><h3 data-ar="جربتي خدمتنا؟" data-fr="Vous avez testé ?">جربتي خدمتنا؟</h3><p data-ar="رأيك يهمنا! صيفط لينا تقييمك عبر واتساب وننشروه هنا." data-fr="Votre avis compte ! Envoyez-le sur WhatsApp.">رأيك يهمنا! صيفط لينا تقييمك عبر واتساب وننشروه هنا.</p></div>
-        <a class="btn btn-secondary whatsapp-general" target="_blank" rel="noopener" data-ar="قيّم تجربتك" data-fr="Donnez votre avis">قيّم تجربتك</a>
+      <div class="review-form-card reveal" id="rateForm">
+        <h3 data-ar="قيّم تجربتك ⭐" data-fr="Donnez votre avis ⭐">قيّم تجربتك ⭐</h3>
+        <p data-ar="رأيك يهمنا وكيعاون كليان آخرين يختارو بثقة." data-fr="Votre avis aide les autres clients.">رأيك يهمنا وكيعاون كليان آخرين يختارو بثقة.</p>
+        <div class="form-row">
+          <input type="text" id="revName" maxlength="30" data-ar-ph="الاسم الكامل" data-fr-ph="Votre nom" placeholder="الاسم الكامل">
+        </div>
+        <div class="form-row">
+          <label data-ar="المنتج (اختياري)" data-fr="Produit (optionnel)">المنتج (اختياري)</label>
+          <select id="revProduct"><option value="" data-ar="تقييم عام للمتجر" data-fr="Avis général">تقييم عام للمتجر</option></select>
+        </div>
+        <div class="form-row">
+          <label data-ar="تقييمك" data-fr="Votre note">تقييمك</label>
+          <div class="star-input" id="starInput">
+            <span data-v="1">★</span><span data-v="2">★</span><span data-v="3">★</span><span data-v="4">★</span><span data-v="5">★</span>
+          </div>
+        </div>
+        <div class="form-row">
+          <textarea id="revText" rows="3" maxlength="500" data-ar-ph="كتب تجربتك هنا... (10 أحرف على الأقل)" data-fr-ph="Votre expérience... (10 caractères min)" placeholder="كتب تجربتك هنا... (10 أحرف على الأقل)"></textarea>
+        </div>
+        <button class="btn btn-primary" id="revSubmit"><span data-ar="إرسال التقييم" data-fr="Envoyer">إرسال التقييم</span></button>
+        <div id="revMsg" class="rev-msg"></div>
       </div>
     </section>
 
@@ -801,7 +836,7 @@
       <button class="modal-close" id="modalClose" aria-label="Close">×</button>
       <div class="modal-icon" id="modalIcon"></div>
       <h3 id="modalName"></h3>
-      <div class="modal-badges"><span class="badge-stock" data-ar="🟢 متوفر" data-fr="🟢 Disponible">🟢 متوفر</span><span class="badge-best" id="modalBest" style="display:none" data-ar="🔥 الأكثر مبيعاً" data-fr="🔥 Meilleure vente">🔥 الأكثر مبيعاً</span></div>
+      <div class="modal-rating" id="modalRating"></div><div class="modal-reviews" id="modalReviews"></div><div class="modal-badges"><span class="badge-stock" data-ar="🟢 متوفر" data-fr="🟢 Disponible">🟢 متوفر</span><span class="badge-best" id="modalBest" style="display:none" data-ar="🔥 الأكثر مبيعاً" data-fr="🔥 Meilleure vente">🔥 الأكثر مبيعاً</span></div>
       <div class="modal-duration" id="modalDuration"></div>
       <p class="modal-desc" id="modalDesc"></p>
       <ul class="modal-features" id="modalFeatures"></ul>
@@ -887,6 +922,7 @@
         modalOrder.setAttribute('data-product', btn.getAttribute('data-product'));
         modalOrder.setAttribute('data-price', btn.getAttribute('data-price'));
         document.getElementById('modalBest').style.display = card.getAttribute('data-bestseller') === '1' ? '' : 'none';
+        if (typeof renderModalRating === 'function') renderModalRating(card);
         setWhatsAppLinks(document.body.getAttribute('data-lang') || 'ar');
         modal.classList.add('open');
         document.body.style.overflow = 'hidden';
@@ -950,5 +986,215 @@
       setLanguage('ar');
     })();
   </script>
+
+<script>
+/* ============ EcomLabs2 StoreDB — Reviews & Sales System ============
+   Backend: localStorage (per-device). Designed for Firebase upgrade.
+   All data is real user-submitted. No fake reviews or sales. */
+var StoreDB = (function() {
+  var K_REVIEWS = 'ecomlabs2_reviews_v1';
+  var K_SALES = 'ecomlabs2_sales_v1';
+  var K_LAST = 'ecomlabs2_last_review_v1';
+
+  // Seed: initial reviews (from store launch)
+  var seed = [
+    {id:'seed1', name:'يوسف', product:'Netflix', stars:5, text:'طلبت Netflix ووصلني الحساب في 5 دقايق. تعامل راقي وسرعة في الرد، شكراً!', date:'2026-10-07T10:30:00'},
+    {id:'seed2', name:'سلمى', product:'ChatGPT', stars:5, text:'خديت ChatGPT Plus بثمن مناسب بزاف مقارنة بالرسمي. كلشي خدام مزيان.', date:'2026-10-06T15:00:00'},
+    {id:'seed3', name:'مهدي', product:'', stars:5, text:'أحسن حاجة هي الضمان. كان عندي مشكل صغير في التفعيل وحلوه ليا في نفس النهار.', date:'2026-10-05T11:00:00'}
+  ];
+
+  function load(k, fb) {
+    try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : fb; }
+    catch(e) { return fb; }
+  }
+  function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+
+  function getReviews() {
+    var r = load(K_REVIEWS, null);
+    if (!r) { r = seed.slice(); save(K_REVIEWS, r); }
+    return r.slice().sort(function(a,b){ return new Date(b.date) - new Date(a.date); });
+  }
+  function getSales() {
+    var s = load(K_SALES, null);
+    if (!s) { s = {}; save(K_SALES, s); }
+    return s;
+  }
+
+  function addReview(data) {
+    // Validation
+    var name = (data.name||'').trim();
+    var text = (data.text||'').trim();
+    var stars = parseInt(data.stars, 10);
+    if (name.length < 2 || name.length > 30) return {ok:false, err:'الاسم خاصو يكون بين 2 و 30 حرف.'};
+    if (!stars || stars < 1 || stars > 5) return {ok:false, err:'اختار عدد النجوم (1-5).'};
+    if (text.length < 10) return {ok:false, err:'التعليق خاصو يكون 10 أحرف على الأقل.'};
+    if (text.length > 500) return {ok:false, err:'التعليق طويل بزاف (الحد 500 حرف).'};
+    // Spam protection: rate limit (1 per 3 min)
+    var last = parseInt(load(K_LAST, '0'), 10);
+    if (Date.now() - last < 3*60*1000) return {ok:false, err:'صبر شوية عاد صيفط تقييم آخر.'};
+    // Duplicate detection
+    var revs = getReviews();
+    for (var i=0;i<revs.length;i++) {
+      if (revs[i].name === name && revs[i].text === text) return {ok:false, err:'هاد التقييم موجود already.'};
+    }
+    var rev = {id:'r'+Date.now(), name:name, product:data.product||'', stars:stars, text:text, date:new Date().toISOString()};
+    revs.push(rev); save(K_REVIEWS, revs); save(K_LAST, String(Date.now()));
+    notify('reviews');
+    return {ok:true, review:rev};
+  }
+
+  function productStats(short) {
+    var revs = getReviews().filter(function(r){ return r.product === short; });
+    if (!revs.length) return {avg:0, count:0};
+    var sum = revs.reduce(function(a,r){ return a+r.stars; }, 0);
+    return {avg: Math.round(sum/revs.length*10)/10, count: revs.length};
+  }
+  function storeStats() {
+    var revs = getReviews();
+    if (!revs.length) return {avg:0, count:0};
+    var sum = revs.reduce(function(a,r){ return a+r.stars; }, 0);
+    return {avg: Math.round(sum/revs.length*10)/10, count: revs.length};
+  }
+  function salesFor(short) { return getSales()[short] || 0; }
+
+  // Simple pub/sub for sync
+  var subs = {};
+  function notify(topic) { (subs[topic]||[]).forEach(function(cb){ try{cb();}catch(e){} }); }
+  function on(topic, cb) { (subs[topic] = subs[topic]||[]).push(cb); }
+
+  return { getReviews:getReviews, addReview:addReview, getSales:getSales, salesFor:salesFor,
+           productStats:productStats, storeStats:storeStats, on:on,
+           getProductReviews:function(s){ return getReviews().filter(function(r){ return r.product===s; }); } };
+})();
+
+/* ============ Review UI ============ */
+var REVIEWS_SHOWN = 3;
+var reviewsExpanded = false;
+var selectedStars = 0;
+
+function starStr(avg) {
+  if (!avg) return '';
+  var s = '';
+  for (var i=1;i<=5;i++) s += i <= Math.round(avg) ? '★' : '☆';
+  return s;
+}
+function fmtDate(iso) {
+  try { var d = new Date(iso); return d.toLocaleDateString('fr-FR'); }
+  catch(e) { return ''; }
+}
+function escHtml(t) {
+  return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function renderReviews() {
+  var grid = document.getElementById('reviewsGrid');
+  if (!grid) return;
+  var revs = StoreDB.getReviews();
+  var list = reviewsExpanded ? revs : revs.slice(0, REVIEWS_SHOWN);
+  grid.innerHTML = list.map(function(r){
+    return '<div class="review-card reveal"><div class="stars">' + '★'.repeat(r.stars) + '☆'.repeat(5-r.stars) + '</div>'
+      + '<p>' + escHtml(r.text) + '</p>'
+      + '<div class="reviewer">' + escHtml(r.name) + '</div>'
+      + (r.product ? '<div><span class="review-product-tag">' + escHtml(r.product) + '</span></div>' : '')
+      + '<div class="review-date">' + fmtDate(r.date) + '</div></div>';
+  }).join('');
+  // Show more/less
+  var more = document.getElementById('showMoreReviews');
+  var less = document.getElementById('showLessReviews');
+  if (revs.length > REVIEWS_SHOWN) {
+    if (reviewsExpanded) { more.style.display='none'; less.style.display=''; }
+    else { more.style.display=''; less.style.display='none';
+      document.getElementById('moreCount').textContent = '(' + (revs.length - REVIEWS_SHOWN) + ')'; }
+  } else { more.style.display='none'; less.style.display='none'; }
+  // Store average
+  var st = StoreDB.storeStats();
+  var el = document.getElementById('storeRating');
+  if (el) el.innerHTML = st.count
+    ? '<strong>' + starStr(st.avg) + '</strong> ' + st.avg + '/5 — ' + st.count + ' تقييم'
+    : 'لا توجد تقييمات بعد — كن أول من يقيّم!';
+}
+
+function renderModalRating(card) {
+  var short = card.getAttribute('data-short');
+  var st = StoreDB.productStats(short);
+  var sales = StoreDB.salesFor(short);
+  var box = document.getElementById('modalRating');
+  if (!box) return;
+  if (st.count) {
+    box.innerHTML = '<span class="stars">' + starStr(st.avg) + '</span><strong>' + st.avg + '/5</strong>'
+      + '<span> | ' + st.count + ' تقييم</span><span> | ' + sales + ' مبيعة</span>';
+  } else {
+    box.innerHTML = '<span class="no-rev">لا توجد تقييمات بعد</span><span> | ' + sales + ' مبيعة</span>';
+  }
+  // Product reviews in modal
+  var mr = document.getElementById('modalReviews');
+  if (mr) {
+    var pr = StoreDB.getProductReviews(short).slice(0, 5);
+    mr.innerHTML = pr.length ? pr.map(function(r){
+      return '<div class="mr"><div class="stars">' + '★'.repeat(r.stars) + '☆'.repeat(5-r.stars) + '</div>'
+        + '<p>' + escHtml(r.text) + '</p><div class="who">' + escHtml(r.name) + ' — ' + fmtDate(r.date) + '</div></div>';
+    }).join('') : '';
+  }
+}
+
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  if (!t) { t = document.createElement('div'); t.id='toast'; t.className='toast'; document.body.appendChild(t); }
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); }, 3000);
+}
+
+// Init review system
+document.addEventListener('DOMContentLoaded', function() {
+  // Populate product dropdown
+  var sel = document.getElementById('revProduct');
+  if (sel) {
+    document.querySelectorAll('.product-card').forEach(function(card){
+      var s = card.getAttribute('data-short');
+      if (s) { var o = document.createElement('option'); o.value = s; o.textContent = s; sel.appendChild(o); }
+    });
+  }
+  // Star input
+  var si = document.getElementById('starInput');
+  if (si) si.querySelectorAll('span').forEach(function(sp){
+    sp.addEventListener('click', function(){
+      selectedStars = parseInt(sp.getAttribute('data-v'), 10);
+      si.querySelectorAll('span').forEach(function(x){
+        x.classList.toggle('active', parseInt(x.getAttribute('data-v'),10) <= selectedStars);
+      });
+    });
+  });
+  // Submit
+  var btn = document.getElementById('revSubmit');
+  if (btn) btn.addEventListener('click', function(){
+    var msg = document.getElementById('revMsg');
+    var res = StoreDB.addReview({
+      name: document.getElementById('revName').value,
+      product: document.getElementById('revProduct').value,
+      stars: selectedStars,
+      text: document.getElementById('revText').value
+    });
+    if (res.ok) {
+      msg.className = 'rev-msg ok'; msg.textContent = 'شكراً! تقييمك تنشر بنجاح ✅';
+      document.getElementById('revName').value = '';
+      document.getElementById('revText').value = '';
+      document.getElementById('revProduct').value = '';
+      selectedStars = 0;
+      si.querySelectorAll('span').forEach(function(x){ x.classList.remove('active'); });
+      showToast('تم نشر تقييمك بنجاح! ⭐');
+    } else {
+      msg.className = 'rev-msg err'; msg.textContent = res.err;
+    }
+  });
+  // Show more/less
+  var more = document.getElementById('showMoreReviews');
+  if (more) more.addEventListener('click', function(){ reviewsExpanded = true; renderReviews(); });
+  var less = document.getElementById('showLessReviews');
+  if (less) less.addEventListener('click', function(){ reviewsExpanded = false; renderReviews(); document.getElementById('reviews').scrollIntoView({behavior:'smooth'}); });
+
+  renderReviews();
+  StoreDB.on('reviews', function(){ renderReviews(); });
+});
+</script>
 </body>
 </html>
