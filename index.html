@@ -878,11 +878,17 @@
       document.addEventListener('click', function(e){
         var a = e.target.closest ? e.target.closest('a[href*="wa.me"]') : null;
         if (!a) return;
-        var p = a.getAttribute('data-product') || '';
+        // Get the sales key (data-short) - from parent card or modal
+        var key = a.getAttribute('data-short') || '';
+        if (!key) {
+          var card = a.closest ? a.closest('article[data-short]') : null;
+          if (card) key = card.getAttribute('data-short');
+        }
+        if (!key && window._modalShort) key = window._modalShort;
+        if (!key) return;
         var pr = a.getAttribute('data-price') || '';
-        if (!p) return;
         try {
-          if (typeof StoreDB !== 'undefined' && StoreDB.recordSale) StoreDB.recordSale(p, pr);
+          if (typeof StoreDB !== 'undefined' && StoreDB.recordSale) StoreDB.recordSale(key, pr);
         } catch(err){}
       });
 
@@ -953,8 +959,11 @@
           featWrap.appendChild(li);
         });
         var btn = card.querySelector('a.order-btn');
+        var pShort = card.getAttribute('data-short') || '';
+        window._modalShort = pShort;
         modalOrder.setAttribute('data-product', btn.getAttribute('data-product'));
         modalOrder.setAttribute('data-price', btn.getAttribute('data-price'));
+        if (pShort) modalOrder.setAttribute('data-short', pShort);
         document.getElementById('modalBest').style.display = card.getAttribute('data-bestseller') === '1' ? '' : 'none';
         if (typeof renderModalRating === 'function') renderModalRating(card);
         setWhatsAppLinks(document.body.getAttribute('data-lang') || 'ar');
