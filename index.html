@@ -436,6 +436,8 @@
     .mstat.sales { color: var(--text); font-weight: 700; }
 
     .btn-sm { padding: 8px 16px; font-size: .82rem; min-height: 0; }
+
+    .verified-badge { display:inline-block; font-size:.72rem; background:rgba(46,213,115,.15); color:#2ed573; padding:2px 8px; border-radius:999px; font-weight:800; }
   </style>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -1142,7 +1144,7 @@ function renderReviews() {
   grid.innerHTML = list.map(function(r){
     return '<div class="review-card reveal"><div class="stars">' + '★'.repeat(r.stars) + '☆'.repeat(5-r.stars) + '</div>'
       + '<p>' + escHtml(r.text) + '</p>'
-      + '<div class="reviewer">' + escHtml(r.name) + '</div>'
+      + '<div class="reviewer">' + escHtml(r.name) + (r.verified ? ' <span class="verified-badge">✓ شراء مؤكد</span>' : '') + '</div>'
       + (r.product ? '<div><span class="review-product-tag">' + escHtml(r.product) + '</span></div>' : '')
       + '<div class="review-date">' + fmtDate(r.date) + '</div></div>';
   }).join('');
@@ -1171,7 +1173,7 @@ function renderModalReviews() {
   var show = window._modalRevExpanded ? pr : pr.slice(0, 1);
   mr.innerHTML = show.map(function(r){
     return '<div class="mr"><div class="stars">' + '★'.repeat(r.stars) + '☆'.repeat(5-r.stars) + '</div>'
-      + '<p>' + escHtml(r.text) + '</p><div class="who">' + escHtml(r.name) + ' — ' + fmtDate(r.date) + '</div></div>';
+      + '<p>' + escHtml(r.text) + '</p><div class="who">' + escHtml(r.name) + (r.verified ? ' <span class="verified-badge">✓</span>' : '') + ' — ' + fmtDate(r.date) + '</div></div>';
   }).join('')
   + (pr.length > 1 ? '<button class="btn btn-secondary btn-sm" id="modalMoreRev" style="margin-top:8px"><span>'
     + (window._modalRevExpanded ? 'عرض أقل' : 'عرض المزيد (' + (pr.length-1) + ')') + '</span></button>' : '');
