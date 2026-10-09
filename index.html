@@ -335,7 +335,9 @@
       min-width: 0; font-family: inherit; color: var(--text); text-align: start; width: 100%;
     }
 
-    .category-tabs { display: none; }
+    .category-tabs { display: flex; gap: 9px; flex-wrap: wrap; margin-bottom: 20px; justify-content: center; }
+    .category-tab { font-size: .9rem; padding: 10px 18px; }
+    .category-tab[aria-pressed="true"] { background: var(--brand); color: #fff; border-color: var(--brand); box-shadow: 0 0 12px rgba(255,45,45,.4); }
     .compact-cell .cell-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
     .compact-cell .cell-name { font-weight: 700; font-size: .92rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .compact-cell .cell-sub { font-size: .8rem; color: #c9c9d4; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -496,9 +498,7 @@
         <button class="category-tab" type="button" data-filter="design" aria-pressed="false" data-ar="التصميم والإبداع" data-fr="Design & création">التصميم والإبداع</button>
         <button class="category-tab" type="button" data-filter="bundles" aria-pressed="false" data-ar="باقات حصرية" data-fr="Packs exclusifs">باقات حصرية</button>
 
-          <button class="category-tab" data-filter="entertainment" aria-pressed="false">
-            <span data-ar="ترفيه" data-fr="Divertissement">ترفيه</span>
-          </button>
+
         </div>
 
       <div class="product-grid">
@@ -668,7 +668,7 @@
             <div class="product-category" data-ar="الذكاء الاصطناعي" data-fr="Intelligence artificielle">الذكاء الاصطناعي</div>
             <h3>ChatGPT Plus — Compte Personnel</h3>
             <div class="product-duration" data-ar="شهر" data-fr="1 mois">شهر</div>
-            <p class="product-desc" data-ar="اشتراك ChatGPT Plus مع GPT-5: حساب شخصي كامل بأقوى الميزات." data-fr="Abonnement ChatGPT Plus avec GPT-5 : compte personnel complet.">حساب شخصي كامل: GPT-4 وأقوى الميزات بلا حدود.</p>
+            <p class="product-desc" data-ar="اشتراك ChatGPT Plus مع GPT-5: حساب شخصي كامل بأقوى الميزات." data-fr="Abonnement ChatGPT Plus avec GPT-5 : compte personnel complet.">حساب شخصي كامل: GPT-5 وأقوى الميزات بلا حدود.</p>
             <div class="price-row"><div class="price"><strong>160</strong><span>MAD</span></div></div>
             <a class="btn btn-primary order-btn" data-product="ChatGPT Plus Personnel" data-price="160" href="#" target="_blank" rel="noopener" data-ar="طلب عبر واتساب" data-fr="Commander sur WhatsApp">طلب عبر واتساب</a>
           </div>
