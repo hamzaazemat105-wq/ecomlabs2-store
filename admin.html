@@ -3,27 +3,279 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>لوحة الإدارة</title>
+<title>EcomLabs2 — لوحة الإدارة</title>
 <style>
-body { background: #0f0f14; color: #fff; font-family: sans-serif; margin: 0; padding: 20px; }
-.box { background: #1a1a22; border: 1px solid #333; border-radius: 12px; padding: 20px; max-width: 400px; margin: 20px auto; }
-input { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #444; background: #222; color: #fff; font-size: 16px; box-sizing: border-box; }
-button { width: 100%; padding: 14px; background: #ff2d2d; color: #fff; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; }
-h1 { text-align: center; color: #ff2d2d; }
-p { text-align: center; color: #888; }
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,sans-serif;background:#0f0f14;color:#eee;min-height:100vh}
+.wrap{max-width:900px;margin:0 auto;padding:20px 16px 60px}
+h1{text-align:center;color:#ff2d2d;margin-bottom:5px}
+.sub{text-align:center;color:#888;font-size:.85rem;margin-bottom:20px}
+.card{background:#1a1a22;border:1px solid #2a2a35;border-radius:14px;padding:20px;margin-bottom:16px}
+input{width:100%;background:#25252f;border:1px solid #3a3a48;border-radius:10px;padding:12px;color:#fff;margin-bottom:10px;font-size:1rem;font-family:inherit}
+.btn{display:inline-block;border:none;border-radius:10px;padding:12px 24px;font-weight:800;cursor:pointer;font-size:.95rem;font-family:inherit}
+.btn-red{background:#ff2d2d;color:#fff;width:100%}
+.btn-green{background:#2ed573;color:#fff}
+.btn-grey{background:#3a3a48;color:#fff}
+.btn-sm{padding:8px 14px;font-size:.82rem;border-radius:8px}
+.btn-danger{background:#ff4757;color:#fff}
+.tabs{display:flex;gap:8px;margin:20px 0}
+.tab{flex:1;text-align:center;padding:12px;background:#1a1a22;border:1px solid #2a2a35;border-radius:10px;cursor:pointer;font-weight:700}
+.tab.active{background:#ff2d2d;border-color:#ff2d2d;color:#fff}
+.item{background:#22222c;border-radius:10px;padding:14px;margin-bottom:10px}
+.item .meta{font-size:.8rem;color:#888;margin-top:6px}
+.item .actions{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
+.stars{color:#ffc107}
+.badge{display:inline-block;font-size:.72rem;padding:2px 10px;border-radius:999px;font-weight:800}
+.b-verified{background:rgba(46,213,115,.2);color:#2ed573}
+.b-pending{background:rgba(255,193,7,.2);color:#ffc107}
+.b-confirmed{background:rgba(46,213,115,.2);color:#2ed573}
+#loginBox{max-width:400px;margin:20px auto}
+#adminPanel{display:none}
+.err{color:#ff4757;margin-top:10px;min-height:1.2em}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.stat{background:#22222c;border-radius:10px;padding:14px;text-align:center}
+.stat strong{display:block;font-size:1.6rem;color:#ff2d2d}
+.stat span{font-size:.8rem;color:#888}
+.hidden{display:none!important}
+#status{text-align:center;color:#888;font-size:.85rem;min-height:1.2em}
+.loading{text-align:center;color:#888;padding:20px}
 </style>
 </head>
 <body>
-<h1>🛡️ لوحة الإدارة</h1>
-<p>نسخة اختبار — إذا شفتي هاد النموذج، الصفحة خدامة</p>
-<div class="box">
-<input type="email" id="e" placeholder="البريد الإلكتروني" value="hamzaazemat105@gmail.com">
-<input type="password" id="p" placeholder="كلمة المرور">
-<button onclick="alert('الزر خدام! جاري تحميل النظام الكامل...')">دخول</button>
+<div class="wrap">
+<h1>🛡️ EcomLabs2 — لوحة الإدارة</h1>
+<div class="sub">إدارة الطلبات والتقييمات والمبيعات</div>
+<div id="status"></div>
+
+<div id="loginBox" class="card">
+<h3 style="margin-top:0">تسجيل الدخول</h3>
+<input type="email" id="admEmail" placeholder="البريد الإلكتروني" value="hamzaazemat105@gmail.com" autocomplete="username">
+<input type="password" id="admPass" placeholder="كلمة المرور" autocomplete="current-password">
+<button class="btn btn-red" id="loginBtn" disabled>جاري التحميل...</button>
+<div class="err" id="loginErr"></div>
 </div>
-<p id="msg"></p>
+
+<div id="adminPanel">
+<div class="tabs">
+<div class="tab active" data-tab="orders">📦 الطلبات <span id="ordCount"></span></div>
+<div class="tab" data-tab="reviews">⭐ التقييمات</div>
+<div class="tab" data-tab="sales">📊 المبيعات</div>
+</div>
+<div id="tab-orders"><div class="loading">جاري التحميل...</div></div>
+<div id="tab-reviews" class="hidden"></div>
+<div id="tab-sales" class="hidden"></div>
+<div style="text-align:center;margin-top:20px">
+<button class="btn btn-grey btn-sm" id="logoutBtn">تسجيل الخروج</button>
+</div>
+</div>
+</div>
+
 <script>
-document.getElementById('msg').textContent = 'JavaScript خدام ✅';
+(function(){
+"use strict";
+var statusEl=document.getElementById('status');
+var loginBtn=document.getElementById('loginBtn');
+var loginErr=document.getElementById('loginErr');
+function setStatus(t){statusEl.textContent=t;}
+function setErr(t){loginErr.textContent=t;}
+
+// Load Firebase SDKs dynamically
+var SDK=[
+'https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js',
+'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js',
+'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js'
+];
+function loadOne(src){
+return new Promise(function(resolve,reject){
+var s=document.createElement('script');
+var done=false;
+s.src=src;
+s.onload=function(){if(!done){done=true;resolve();}};
+s.onerror=function(){if(!done){done=true;reject(new Error('load failed'));}};
+setTimeout(function(){if(!done){done=true;reject(new Error('timeout'));}},20000);
+document.head.appendChild(s);
+});
+}
+setStatus('جاري تحميل النظام...');
+var p=Promise.resolve();
+SDK.forEach(function(src){p=p.then(function(){return loadOne(src);});});
+p.then(function(){
+try{initApp();}catch(e){setStatus('خطأ: '+e.message);setErr('خطأ في التهيئة. أعد تحميل الصفحة.');}
+}).catch(function(){
+setStatus('');
+setErr('فشل تحميل Firebase. تحقق من الاتصال بالإنترنت ثم أعد تحميل الصفحة.');
+loginBtn.textContent='إعادة المحاولة';
+loginBtn.disabled=false;
+loginBtn.onclick=function(){location.reload();};
+});
+
+function initApp(){
+if(typeof firebase==='undefined'){throw new Error('Firebase not loaded');}
+firebase.initializeApp({
+apiKey:"AIzaSyA-mzd2EW8XRIz5dmtwC8EC1ua882a_dYg",
+authDomain:"ecomlabs2-store.firebaseapp.com",
+projectId:"ecomlabs2-store"
+});
+var auth=firebase.auth();
+var db=firebase.firestore();
+var esc=function(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');};
+
+setStatus('');
+loginBtn.disabled=false;
+loginBtn.textContent='دخول';
+loginBtn.onclick=doLogin;
+
+function doLogin(){
+var e=document.getElementById('admEmail').value.trim();
+var p=document.getElementById('admPass').value;
+setErr('');
+if(!e||!p){setErr('دخل البريد الإلكتروني وكلمة المرور.');return;}
+loginBtn.disabled=true;
+loginBtn.textContent='جاري الدخول...';
+auth.signInWithEmailAndPassword(e,p).then(function(){
+loginBtn.disabled=false;loginBtn.textContent='دخول';
+}).catch(function(err){
+loginBtn.disabled=false;loginBtn.textContent='دخول';
+var m='خطأ في الدخول.';
+if(err.code==='auth/invalid-credential')m='البريد أو كلمة المرور غير صحيحة.';
+else if(err.code==='auth/user-not-found')m='الحساب غير موجود.';
+else if(err.code==='auth/network-request-failed')m='مشكلة في الاتصال بالإنترنت.';
+else if(err.message)m=err.message;
+setErr(m);
+});
+}
+document.getElementById('admPass').addEventListener('keyup',function(ev){if(ev.key==='Enter')doLogin();});
+document.getElementById('logoutBtn').addEventListener('click',function(){auth.signOut();});
+
+auth.onAuthStateChanged(function(user){
+document.getElementById('loginBox').style.display=user?'none':'block';
+document.getElementById('adminPanel').style.display=user?'block':'none';
+setStatus(user?('متصل: '+user.email):'');
+if(user)loadAll();
+});
+
+var tabs=document.querySelectorAll('.tab');
+for(var i=0;i<tabs.length;i++){
+tabs[i].addEventListener('click',function(){
+for(var j=0;j<tabs.length;j++)tabs[j].classList.remove('active');
+this.classList.add('active');
+var names=['orders','reviews','sales'];
+for(var k=0;k<names.length;k++){
+document.getElementById('tab-'+names[k]).classList.toggle('hidden',names[k]!==this.getAttribute('data-tab'));
+}
+});
+}
+
+function loadAll(){loadOrders();loadReviews();loadSales();}
+
+function loadOrders(){
+db.collection('orders').orderBy('date','desc').limit(50).onSnapshot(function(snap){
+var el=document.getElementById('tab-orders');
+var pending=0,html='';
+snap.forEach(function(doc){
+var o=doc.data();
+if(o.status==='pending')pending++;
+html+='<div class="item"><strong>'+esc(o.product)+'</strong> — '+esc(o.price)+' MAD '
++'<span class="badge '+(o.status==='pending'?'b-pending':'b-confirmed')+'">'+(o.status==='pending'?'بانتظار التأكيد':'مؤكد')+'</span>'
++'<div class="meta">'+esc(fmtDate(o.date))+'</div>';
+if(o.status==='pending'){
+html+='<div class="actions"><button class="btn btn-green btn-sm" data-act="confirm" data-id="'+doc.id+'" data-prod="'+esc(o.product)+'">✓ تأكيد البيع (+1)</button></div>';
+}
+html+='</div>';
+});
+document.getElementById('ordCount').textContent=pending?'('+pending+')':'';
+el.innerHTML=html||'<div class="card">لا توجد طلبات بعد. الطلبات الجديدة غادي تبان هنا ملي الكليان يكليكيو على زر الطلب.</div>';
+bindActions(el);
+},function(err){
+document.getElementById('tab-orders').innerHTML='<div class="card err">خطأ: '+esc(err.message)+'</div>';
+});
+}
+
+function loadReviews(){
+db.collection('reviews').orderBy('date','desc').limit(100).onSnapshot(function(snap){
+var el=document.getElementById('tab-reviews');
+var html='';
+snap.forEach(function(doc){
+var r=doc.data();
+var st='';
+for(var s=0;s<5;s++)st+=(s<r.stars?'★':'☆');
+html+='<div class="item"><div class="stars">'+st+'</div>'
++'<div>'+esc(r.text)+'</div>'
++'<div class="meta">'+esc(r.name)+(r.product?' — '+esc(r.product):'')+' — '+esc(fmtDate(r.date));
+if(r.verified)html+=' <span class="badge b-verified">✓ شراء مؤكد</span>';
+html+='</div><div class="actions">'
++'<button class="btn btn-green btn-sm" data-act="verify" data-id="'+doc.id+'" data-v="'+(r.verified?'0':'1')+'">'+(r.verified?'إلغاء التوثيق':'✓ توثيق')+'</button>'
++'<button class="btn btn-danger btn-sm" data-act="delrev" data-id="'+doc.id+'">🗑️ حذف</button>'
++'</div></div>';
+});
+el.innerHTML=html||'<div class="card">لا توجد تقييمات.</div>';
+bindActions(el);
+},function(err){
+document.getElementById('tab-reviews').innerHTML='<div class="card err">خطأ: '+esc(err.message)+'</div>';
+});
+}
+
+function loadSales(){
+db.collection('sales').onSnapshot(function(snap){
+var el=document.getElementById('tab-sales');
+var items=[];
+var total=0;
+snap.forEach(function(doc){items.push({name:doc.id,count:doc.data().count||0});});
+items.sort(function(a,b){return b.count-a.count;});
+var html='<div class="stat-grid">';
+for(var i=0;i<items.length;i++){
+total+=items[i].count;
+html+='<div class="stat"><strong>'+items[i].count+'</strong><span>'+esc(items[i].name)+'</span></div>';
+}
+html+='</div><div class="card" style="margin-top:16px;text-align:center"><h3 style="margin:0">المجموع: '+total+' مبيعة</h3></div>';
+el.innerHTML=html;
+},function(err){
+document.getElementById('tab-sales').innerHTML='<div class="card err">خطأ: '+esc(err.message)+'</div>';
+});
+}
+
+function fmtDate(d){
+try{return new Date(d).toLocaleString('fr-FR');}catch(e){return '';}
+}
+
+function bindActions(root){
+var btns=root.querySelectorAll('[data-act]');
+for(var i=0;i<btns.length;i++){
+(function(b){
+b.addEventListener('click',function(){
+var act=b.getAttribute('data-act');
+var id=b.getAttribute('data-id');
+if(act==='confirm'){
+var prod=b.getAttribute('data-prod');
+if(!confirm('تأكيد بيع "'+prod+'"?\nغادي تزيد المبيعات بـ 1.'))return;
+var oref=db.collection('orders').doc(id);
+var sref=db.collection('sales').doc(prod);
+db.runTransaction(function(tx){
+return tx.get(sref).then(function(sdoc){
+var cur=sdoc.exists?(sdoc.data().count||0):0;
+tx.update(oref,{status:'confirmed',confirmedAt:new Date().toISOString()});
+tx.set(sref,{count:cur+1},{merge:true});
+});
+}).then(function(){alert('تم تأكيد البيع ✅');})
+.catch(function(e){alert('خطأ: '+e.message);});
+}
+else if(act==='verify'){
+var v=b.getAttribute('data-v')==='1';
+db.collection('reviews').doc(id).update({verified:v})
+.catch(function(e){alert('خطأ: '+e.message);});
+}
+else if(act==='delrev'){
+if(!confirm('حذف هاد التقييم نهائياً؟'))return;
+db.collection('reviews').doc(id).delete()
+.then(function(){})
+.catch(function(e){alert('خطأ: '+e.message);});
+}
+});
+})(btns[i]);
+}
+}
+}
+})();
 </script>
 </body>
 </html>
