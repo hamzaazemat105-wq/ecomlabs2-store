@@ -43,9 +43,9 @@
 <body>
 <div class="wrap">
   <h1>🛡️ EcomLabs2 — لوحة الإدارة</h1>
-  <div id="status">جاري التحميل...</div>
+  <div id="status"></div>
 
-  <div id="loginBox" class="card" style="display:none">
+  <div id="loginBox" class="card">
     <h3>تسجيل الدخول</h3>
     <input type="email" id="admEmail" placeholder="البريد الإلكتروني" value="hamzaazemat105@gmail.com" autocomplete="username">
     <input type="password" id="admPass" placeholder="كلمة المرور" autocomplete="current-password">
@@ -68,15 +68,34 @@
   </div>
 </div>
 
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script>
 (function(){
   var statusEl = document.getElementById('status');
   function setStatus(t){ statusEl.textContent = t; }
+  setStatus('جاري تحميل المكتبات...');
 
-  // Check Firebase loaded
+  // Dynamic SDK loading with timeout
+  var SDK = [
+    'https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js',
+    'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js',
+    'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js'
+  ];
+  function loadScript(src){
+    return new Promise(function(res, rej){
+      var s = document.createElement('script');
+      s.src = src; s.onload = res;
+      s.onerror = function(){ rej(new Error('Failed: '+src)); };
+      setTimeout(function(){ rej(new Error('Timeout: '+src)); }, 15000);
+      document.head.appendChild(s);
+    });
+  }
+  var chain = Promise.resolve();
+  SDK.forEach(function(src){ chain = chain.then(function(){ return loadScript(src); }); });
+  chain.then(initApp).catch(function(e){
+    setStatus('❌ فشل تحميل Firebase: تحقق من الإنترنت وأعد تحميل الصفحة.');
+  });
+
+  function initApp(){
   if (typeof firebase === 'undefined') {
     setStatus('❌ فشل تحميل Firebase. تحقق من الاتصال بالإنترنت وأعد تحميل الصفحة.');
     return;
@@ -223,6 +242,7 @@
       document.getElementById('tab-sales').innerHTML = '<div class="card err">خطأ: ' + esc(err.message) + '</div>';
     });
   }
+  } // end initApp
 })();
 </script>
 </body>
