@@ -874,6 +874,21 @@
       var generalLinks = document.querySelectorAll('.whatsapp-general');
       var orderLinks = document.querySelectorAll('a.order-btn[data-product]');
 
+      // Log WhatsApp order clicks to Firestore for admin tracking
+      function logOrderClick(product, price) {
+        try {
+          if (typeof StoreDB !== 'undefined' && StoreDB.logOrder) StoreDB.logOrder(product, price);
+        } catch(e){}
+      }
+      document.addEventListener('click', function(e){
+        var a = e.target.closest ? e.target.closest('a[href*="wa.me"]') : null;
+        if (a) {
+          var p = a.getAttribute('data-product') || '';
+          var pr = a.getAttribute('data-price') || '';
+          if (p) logOrderClick(p, pr);
+        }
+      });
+
       function setWhatsAppLinks(lang) {
         var general = lang === 'ar'
           ? 'سلام، بغيت نسول على الاشتراكات الرقمية ديال EcomLabs2.'
@@ -1114,7 +1129,14 @@ var StoreDB = (function() {
 
   return { getReviews:getReviews, addReview:addReview, getSales:getSales, salesFor:salesFor,
     productStats:productStats, storeStats:storeStats, on:on, isLive:function(){ return useFB; },
-    getProductReviews:function(s){ return getReviews().filter(function(r){ return r.product===s; }); } };
+    getProductReviews:function(s){ return getReviews().filter(function(r){ return r.product===s; }); },
+    logOrder:function(product, price) {
+      if (!useFB || !db) return;
+      db.collection('orders').add({
+        product: product || '', price: price || '',
+        date: new Date().toISOString(), status: 'pending'
+      }).catch(function(){});
+    } };
 })();
 
 /* ============ Review UI ============ */
