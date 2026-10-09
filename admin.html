@@ -4,16 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EcomLabs2 — لوحة الإدارة</title>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
   * { box-sizing: border-box; }
   body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background: #0f0f14; color: #eee; min-height: 100vh; }
   .wrap { max-width: 900px; margin: 0 auto; padding: 20px 16px 60px; }
   h1 { text-align: center; color: #ff2d2d; }
   .card { background: #1a1a22; border: 1px solid #2a2a35; border-radius: 14px; padding: 20px; margin-bottom: 16px; }
-  input, select, button { font-family: inherit; }
+  input, button { font-family: inherit; }
   input { width: 100%; background: #25252f; border: 1px solid #3a3a48; border-radius: 10px; padding: 12px; color: #fff; margin-bottom: 10px; font-size: 1rem; }
   .btn { display: inline-block; border: none; border-radius: 10px; padding: 12px 24px; font-weight: 800; cursor: pointer; font-size: .95rem; }
   .btn-red { background: #ff2d2d; color: #fff; width: 100%; }
@@ -31,24 +28,27 @@
   .b-verified { background: rgba(46,213,115,.2); color: #2ed573; }
   .b-pending { background: rgba(255,193,7,.2); color: #ffc107; }
   .b-confirmed { background: rgba(46,213,115,.2); color: #2ed573; }
-  #loginBox { max-width: 400px; margin: 60px auto; }
+  #loginBox { max-width: 400px; margin: 30px auto; }
   #adminPanel { display: none; }
-  .err { color: #ff4757; margin-top: 10px; }
+  .err { color: #ff4757; margin-top: 10px; min-height: 1.2em; }
+  .ok { color: #2ed573; margin-top: 10px; }
   .stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
   .stat { background: #22222c; border-radius: 10px; padding: 14px; text-align: center; }
   .stat strong { display: block; font-size: 1.6rem; color: #ff2d2d; }
   .stat span { font-size: .8rem; color: #888; }
   .hidden { display: none !important; }
+  #status { text-align: center; color: #888; font-size: .85rem; margin: 10px 0; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>🛡️ EcomLabs2 — لوحة الإدارة</h1>
+  <div id="status">جاري التحميل...</div>
 
-  <div id="loginBox" class="card">
+  <div id="loginBox" class="card" style="display:none">
     <h3>تسجيل الدخول</h3>
-    <input type="email" id="admEmail" placeholder="البريد الإلكتروني" value="hamzaazemat105@gmail.com">
-    <input type="password" id="admPass" placeholder="كلمة المرور">
+    <input type="email" id="admEmail" placeholder="البريد الإلكتروني" value="hamzaazemat105@gmail.com" autocomplete="username">
+    <input type="password" id="admPass" placeholder="كلمة المرور" autocomplete="current-password">
     <button class="btn btn-red" id="loginBtn">دخول</button>
     <div class="err" id="loginErr"></div>
   </div>
@@ -59,128 +59,171 @@
       <div class="tab" data-tab="reviews">⭐ التقييمات</div>
       <div class="tab" data-tab="sales">📊 المبيعات</div>
     </div>
-
     <div id="tab-orders"></div>
     <div id="tab-reviews" class="hidden"></div>
     <div id="tab-sales" class="hidden"></div>
-
     <div style="text-align:center;margin-top:20px">
       <button class="btn btn-grey btn-sm" id="logoutBtn">تسجيل الخروج</button>
     </div>
   </div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script>
-firebase.initializeApp({
-  apiKey: "AIzaSyA-mzd2EW8XRIz5dmtwC8EC1ua882a_dYg",
-  authDomain: "ecomlabs2-store.firebaseapp.com",
-  projectId: "ecomlabs2-store"
-});
-var auth = firebase.auth(), db = firebase.firestore();
-var esc = function(t){ return String(t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
+(function(){
+  var statusEl = document.getElementById('status');
+  function setStatus(t){ statusEl.textContent = t; }
 
-// Login
-document.getElementById('loginBtn').addEventListener('click', function(){
-  var e = document.getElementById('admEmail').value, p = document.getElementById('admPass').value;
-  document.getElementById('loginErr').textContent = '';
-  auth.signInWithEmailAndPassword(e, p).catch(function(err){
-    document.getElementById('loginErr').textContent = 'خطأ: ' + err.message;
-  });
-});
-document.getElementById('logoutBtn').addEventListener('click', function(){ auth.signOut(); });
+  // Check Firebase loaded
+  if (typeof firebase === 'undefined') {
+    setStatus('❌ فشل تحميل Firebase. تحقق من الاتصال بالإنترنت وأعد تحميل الصفحة.');
+    return;
+  }
 
-auth.onAuthStateChanged(function(user){
-  document.getElementById('loginBox').style.display = user ? 'none' : '';
-  document.getElementById('adminPanel').style.display = user ? '' : 'none';
-  if (user) loadAll();
-});
+  var auth, db;
+  try {
+    firebase.initializeApp({
+      apiKey: "AIzaSyA-mzd2EW8XRIz5dmtwC8EC1ua882a_dYg",
+      authDomain: "ecomlabs2-store.firebaseapp.com",
+      projectId: "ecomlabs2-store"
+    });
+    auth = firebase.auth();
+    db = firebase.firestore();
+  } catch(e) {
+    setStatus('❌ خطأ في التهيئة: ' + e.message);
+    return;
+  }
 
-// Tabs
-document.querySelectorAll('.tab').forEach(function(t){
-  t.addEventListener('click', function(){
-    document.querySelectorAll('.tab').forEach(function(x){ x.classList.remove('active'); });
-    t.classList.add('active');
-    ['orders','reviews','sales'].forEach(function(n){
-      document.getElementById('tab-'+n).classList.toggle('hidden', n !== t.dataset.tab);
+  var esc = function(t){ return String(t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
+  setStatus('');
+
+  // Login
+  document.getElementById('loginBtn').addEventListener('click', function(){
+    var e = document.getElementById('admEmail').value.trim();
+    var p = document.getElementById('admPass').value;
+    var errEl = document.getElementById('loginErr');
+    errEl.textContent = '';
+    if (!e || !p) { errEl.textContent = 'دخل البريد وكلمة المرور.'; return; }
+    errEl.textContent = 'جاري الدخول...';
+    auth.signInWithEmailAndPassword(e, p).catch(function(err){
+      var msg = err.message;
+      if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password') msg = 'البريد أو كلمة المرور غالطة.';
+      if (err.code === 'auth/user-not-found') msg = 'المستخدم غير موجود.';
+      if (err.code === 'auth/network-request-failed') msg = 'مشكل في الاتصال بالإنترنت.';
+      errEl.textContent = msg;
     });
   });
-});
-
-function loadAll(){ loadOrders(); loadReviews(); loadSales(); }
-
-// Orders
-function loadOrders(){
-  db.collection('orders').orderBy('date','desc').limit(50).onSnapshot(function(snap){
-    var el = document.getElementById('tab-orders');
-    var pending = 0, html = '';
-    snap.forEach(function(doc){
-      var o = doc.data();
-      if (o.status === 'pending') pending++;
-      html += '<div class="item"><strong>' + esc(o.product) + '</strong> — ' + esc(o.price) + ' MAD '
-        + '<span class="badge ' + (o.status==='pending'?'b-pending':'b-confirmed') + '">' + (o.status==='pending'?'بانتظار التأكيد':'مؤكد') + '</span>'
-        + '<div class="meta">' + new Date(o.date).toLocaleString('fr-FR') + '</div>'
-        + (o.status==='pending' ? '<div class="actions"><button class="btn btn-green btn-sm" onclick="confirmOrder(\''+doc.id+'\',\''+esc(o.product).replace(/'/g,"\\'")+'\')">✓ تأكيد البيع</button></div>' : '')
-        + '</div>';
-    });
-    document.getElementById('ordCount').textContent = pending ? '('+pending+')' : '';
-    el.innerHTML = html || '<div class="card">لا توجد طلبات بعد.</div>';
+  // Enter key
+  document.getElementById('admPass').addEventListener('keyup', function(e){
+    if (e.key === 'Enter') document.getElementById('loginBtn').click();
   });
-}
-window.confirmOrder = function(id, product){
-  if (!confirm('تأكيد بيع "' + product + '"؟ غادي تزيد المبيعات بـ 1.')) return;
-  var orderRef = db.collection('orders').doc(id);
-  var salesRef = db.collection('sales').doc(product);
-  db.runTransaction(function(tx){
-    return tx.get(salesRef).then(function(sdoc){
-      var cur = sdoc.exists ? (sdoc.data().count || 0) : 0;
-      tx.update(orderRef, {status: 'confirmed'});
-      tx.set(salesRef, {count: cur + 1}, {merge: true});
-    });
-  }).then(function(){ alert('تم التأكيد! ✅'); }).catch(function(e){ alert('خطأ: '+e.message); });
-};
+  document.getElementById('logoutBtn').addEventListener('click', function(){ auth.signOut(); });
 
-// Reviews
-function loadReviews(){
-  db.collection('reviews').orderBy('date','desc').limit(100).onSnapshot(function(snap){
-    var el = document.getElementById('tab-reviews'), html = '';
-    snap.forEach(function(doc){
-      var r = doc.data();
-      html += '<div class="item"><div class="stars">' + '★'.repeat(r.stars) + '☆'.repeat(5-r.stars) + '</div>'
-        + '<div>' + esc(r.text) + '</div>'
-        + '<div class="meta">' + esc(r.name) + (r.product ? ' — ' + esc(r.product) : '') + ' — ' + new Date(r.date).toLocaleDateString('fr-FR')
-        + (r.verified ? ' <span class="badge b-verified">✓ شراء مؤكد</span>' : '') + '</div>'
-        + '<div class="actions">'
-        + '<button class="btn btn-green btn-sm" onclick="verifyReview(\''+doc.id+'\','+(!r.verified)+')">'
-        + (r.verified ? 'إلغاء التوثيق' : '✓ توثيق كمشتري') + '</button>'
-        + '<button class="btn btn-grey btn-sm" style="background:#ff4757" onclick="deleteReview(\''+doc.id+'\')">🗑️ حذف</button>'
-        + '</div></div>';
-    });
-    el.innerHTML = html || '<div class="card">لا توجد تقييمات.</div>';
+  auth.onAuthStateChanged(function(user){
+    document.getElementById('loginBox').style.display = user ? 'none' : 'block';
+    document.getElementById('adminPanel').style.display = user ? 'block' : 'none';
+    setStatus(user ? ('متصل: ' + user.email) : '');
+    if (user) loadAll();
   });
-}
-window.deleteReview = function(id){
-  if (!confirm('حذف هاد التقييم نهائياً؟')) return;
-  db.collection('reviews').doc(id).delete().then(function(){ alert('تحذف ✅'); });
-};
-window.verifyReview = function(id, val){
-  db.collection('reviews').doc(id).update({verified: val}).then(function(){});
-};
 
-// Sales
-function loadSales(){
-  db.collection('sales').onSnapshot(function(snap){
-    var el = document.getElementById('tab-sales'), total = 0, html = '<div class="stat-grid">';
-    var items = [];
-    snap.forEach(function(doc){ items.push({name: doc.id, count: doc.data().count||0}); });
-    items.sort(function(a,b){ return b.count - a.count; });
-    items.forEach(function(it){
-      total += it.count;
-      html += '<div class="stat"><strong>' + it.count + '</strong><span>' + esc(it.name) + '</span></div>';
+  // Tabs
+  document.querySelectorAll('.tab').forEach(function(t){
+    t.addEventListener('click', function(){
+      document.querySelectorAll('.tab').forEach(function(x){ x.classList.remove('active'); });
+      t.classList.add('active');
+      ['orders','reviews','sales'].forEach(function(n){
+        document.getElementById('tab-'+n).classList.toggle('hidden', n !== t.dataset.tab);
+      });
     });
-    html += '</div><div class="card" style="margin-top:16px;text-align:center"><h3>المجموع: ' + total + ' مبيعة</h3></div>';
-    el.innerHTML = html;
   });
-}
+
+  function loadAll(){ loadOrders(); loadReviews(); loadSales(); }
+
+  function loadOrders(){
+    db.collection('orders').orderBy('date','desc').limit(50).onSnapshot(function(snap){
+      var el = document.getElementById('tab-orders');
+      var pending = 0, html = '';
+      snap.forEach(function(doc){
+        var o = doc.data();
+        if (o.status === 'pending') pending++;
+        html += '<div class="item"><strong>' + esc(o.product) + '</strong> — ' + esc(o.price) + ' MAD '
+          + '<span class="badge ' + (o.status==='pending'?'b-pending':'b-confirmed') + '">' + (o.status==='pending'?'بانتظار التأكيد':'مؤكد') + '</span>'
+          + '<div class="meta">' + new Date(o.date).toLocaleString('fr-FR') + '</div>'
+          + (o.status==='pending' ? '<div class="actions"><button class="btn btn-green btn-sm" data-oid="'+doc.id+'" data-prod="'+esc(o.product)+'">✓ تأكيد البيع</button></div>' : '')
+          + '</div>';
+      });
+      document.getElementById('ordCount').textContent = pending ? '('+pending+')' : '';
+      el.innerHTML = html || '<div class="card">لا توجد طلبات بعد.</div>';
+      el.querySelectorAll('[data-oid]').forEach(function(btn){
+        btn.addEventListener('click', function(){ confirmOrder(btn.dataset.oid, btn.dataset.prod); });
+      });
+    }, function(err){
+      document.getElementById('tab-orders').innerHTML = '<div class="card err">خطأ: ' + esc(err.message) + '</div>';
+    });
+  }
+
+  function confirmOrder(id, product){
+    if (!confirm('تأكيد بيع "' + product + '"؟ غادي تزيد المبيعات بـ 1.')) return;
+    var orderRef = db.collection('orders').doc(id);
+    var salesRef = db.collection('sales').doc(product);
+    db.runTransaction(function(tx){
+      return tx.get(salesRef).then(function(sdoc){
+        var cur = sdoc.exists ? (sdoc.data().count || 0) : 0;
+        tx.update(orderRef, {status: 'confirmed'});
+        tx.set(salesRef, {count: cur + 1}, {merge: true});
+      });
+    }).then(function(){ alert('تم التأكيد! ✅'); }).catch(function(e){ alert('خطأ: '+e.message); });
+  }
+
+  function loadReviews(){
+    db.collection('reviews').orderBy('date','desc').limit(100).onSnapshot(function(snap){
+      var el = document.getElementById('tab-reviews'), html = '';
+      snap.forEach(function(doc){
+        var r = doc.data();
+        html += '<div class="item"><div class="stars">' + '★'.repeat(r.stars) + '☆'.repeat(5-r.stars) + '</div>'
+          + '<div>' + esc(r.text) + '</div>'
+          + '<div class="meta">' + esc(r.name) + (r.product ? ' — ' + esc(r.product) : '') + ' — ' + new Date(r.date).toLocaleDateString('fr-FR')
+          + (r.verified ? ' <span class="badge b-verified">✓ شراء مؤكد</span>' : '') + '</div>'
+          + '<div class="actions">'
+          + '<button class="btn btn-green btn-sm" data-vid="'+doc.id+'" data-v="'+(!r.verified)+'">' + (r.verified ? 'إلغاء التوثيق' : '✓ توثيق كمشتري') + '</button>'
+          + '<button class="btn btn-sm" data-did="'+doc.id+'" style="background:#ff4757;color:#fff">🗑️ حذف</button>'
+          + '</div></div>';
+      });
+      el.innerHTML = html || '<div class="card">لا توجد تقييمات.</div>';
+      el.querySelectorAll('[data-vid]').forEach(function(b){
+        b.addEventListener('click', function(){
+          db.collection('reviews').doc(b.dataset.vid).update({verified: b.dataset.v === 'true'});
+        });
+      });
+      el.querySelectorAll('[data-did]').forEach(function(b){
+        b.addEventListener('click', function(){
+          if (confirm('حذف هاد التقييم نهائياً؟')) db.collection('reviews').doc(b.dataset.did).delete();
+        });
+      });
+    }, function(err){
+      document.getElementById('tab-reviews').innerHTML = '<div class="card err">خطأ: ' + esc(err.message) + '</div>';
+    });
+  }
+
+  function loadSales(){
+    db.collection('sales').onSnapshot(function(snap){
+      var el = document.getElementById('tab-sales'), total = 0, html = '<div class="stat-grid">';
+      var items = [];
+      snap.forEach(function(doc){ items.push({name: doc.id, count: doc.data().count||0}); });
+      items.sort(function(a,b){ return b.count - a.count; });
+      items.forEach(function(it){
+        total += it.count;
+        html += '<div class="stat"><strong>' + it.count + '</strong><span>' + esc(it.name) + '</span></div>';
+      });
+      html += '</div><div class="card" style="margin-top:16px;text-align:center"><h3>المجموع: ' + total + ' مبيعة</h3></div>';
+      el.innerHTML = html;
+    }, function(err){
+      document.getElementById('tab-sales').innerHTML = '<div class="card err">خطأ: ' + esc(err.message) + '</div>';
+    });
+  }
+})();
 </script>
 </body>
 </html>
