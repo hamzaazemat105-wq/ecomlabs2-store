@@ -427,7 +427,17 @@
     .modal-reviews .mr .who { color: var(--muted); font-size: .78rem; }
     .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: #2ed573; color: #fff; font-weight: 800; padding: 14px 24px; border-radius: 12px; z-index: 9999; opacity: 0; transition: all .3s ease; box-shadow: 0 8px 30px rgba(0,0,0,.3); }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    .modal-stats { display: flex; flex-direction: column; gap: 6px; align-items: center; margin: 10px 0 4px; }
+    .mstat { font-size: .92rem; display: flex; align-items: center; gap: 6px; }
+    .mstat .stars { color: #ffc107; letter-spacing: 1px; font-size: 1rem; }
+    .mstat strong { font-size: .95rem; }
+    .mstat .muted { color: var(--muted); font-size: .85rem; }
+    .mstat.sales { color: var(--text); font-weight: 700; }
   </style>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 </head>
 <body data-lang="ar">
   <header class="topbar">
@@ -836,12 +846,17 @@
       <button class="modal-close" id="modalClose" aria-label="Close">×</button>
       <div class="modal-icon" id="modalIcon"></div>
       <h3 id="modalName"></h3>
-      <div class="modal-rating" id="modalRating"></div><div class="modal-reviews" id="modalReviews"></div><div class="modal-badges"><span class="badge-stock" data-ar="🟢 متوفر" data-fr="🟢 Disponible">🟢 متوفر</span><span class="badge-best" id="modalBest" style="display:none" data-ar="🔥 الأكثر مبيعاً" data-fr="🔥 Meilleure vente">🔥 الأكثر مبيعاً</span></div>
+      <div class="modal-stats">
+        <div class="mstat" id="modalStars"></div>
+        <div class="mstat" id="modalSales"></div>
+      </div>
+      <div class="modal-price"><span id="modalPriceVal"></span> <span>MAD</span></div>
+      <a class="btn btn-primary order-btn" id="modalOrder" data-product="" data-price="" href="#" target="_blank" rel="noopener" data-ar="طلب عبر واتساب" data-fr="Commander sur WhatsApp">طلب عبر واتساب</a>
+      <div class="modal-badges"><span class="badge-stock" data-ar="🟢 متوفر" data-fr="🟢 Disponible">🟢 متوفر</span><span class="badge-best" id="modalBest" style="display:none" data-ar="🔥 الأكثر مبيعاً" data-fr="🔥 Meilleure vente">🔥 الأكثر مبيعاً</span></div>
       <div class="modal-duration" id="modalDuration"></div>
       <p class="modal-desc" id="modalDesc"></p>
       <ul class="modal-features" id="modalFeatures"></ul>
-      <div class="modal-price"><span id="modalPriceVal"></span> <span>MAD</span></div>
-      <a class="btn btn-primary order-btn" id="modalOrder" data-product="" data-price="" href="#" target="_blank" rel="noopener" data-ar="طلب عبر واتساب" data-fr="Commander sur WhatsApp">طلب عبر واتساب</a>
+      <div class="modal-reviews" id="modalReviews"></div>
     </div>
   </div>
   <script>
@@ -988,63 +1003,97 @@
   </script>
 
 <script>
-/* ============ EcomLabs2 StoreDB — Reviews & Sales System ============
-   Backend: localStorage (per-device). Designed for Firebase upgrade.
-   All data is real user-submitted. No fake reviews or sales. */
+/* ============ EcomLabs2 StoreDB — Firebase + localStorage fallback ============ */
 var StoreDB = (function() {
+  var FB_CONFIG = {
+    apiKey: "AIzaSyA-mzd2EW8XRIz5dmtwC8EC1ua882a_dYg",
+    authDomain: "ecomlabs2-store.firebaseapp.com",
+    projectId: "ecomlabs2-store",
+    storageBucket: "ecomlabs2-store.firebasestorage.app",
+    messagingSenderId: "1035728455920",
+    appId: "1:1035728455920:web:f939a58ee8954134d6da35"
+  };
   var K_REVIEWS = 'ecomlabs2_reviews_v1';
   var K_SALES = 'ecomlabs2_sales_v1';
   var K_LAST = 'ecomlabs2_last_review_v1';
 
-  // Seed: initial reviews (from store launch)
   var seed = [
-    {id:'seed1', name:'يوسف', product:'Netflix', stars:5, text:'طلبت Netflix ووصلني الحساب في 5 دقايق. تعامل راقي وسرعة في الرد، شكراً!', date:'2026-10-07T10:30:00'},
-    {id:'seed2', name:'سلمى', product:'ChatGPT', stars:5, text:'خديت ChatGPT Plus بثمن مناسب بزاف مقارنة بالرسمي. كلشي خدام مزيان.', date:'2026-10-06T15:00:00'},
-    {id:'seed3', name:'مهدي', product:'', stars:5, text:'أحسن حاجة هي الضمان. كان عندي مشكل صغير في التفعيل وحلوه ليا في نفس النهار.', date:'2026-10-05T11:00:00'}
+    {name:'يوسف', product:'Netflix', stars:5, text:'طلبت Netflix ووصلني الحساب في 5 دقايق. تعامل راقي وسرعة في الرد، شكراً!', date:'2026-10-07T10:30:00'},
+    {name:'سلمى', product:'ChatGPT', stars:5, text:'خديت ChatGPT Plus بثمن مناسب بزاف مقارنة بالرسمي. كلشي خدام مزيان.', date:'2026-10-06T15:00:00'},
+    {name:'مهدي', product:'', stars:5, text:'أحسن حاجة هي الضمان. كان عندي مشكل صغير في التفعيل وحلوه ليا في نفس النهار.', date:'2026-10-05T11:00:00'}
   ];
 
-  function load(k, fb) {
-    try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : fb; }
-    catch(e) { return fb; }
-  }
-  function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+  var useFB = false, db = null;
+  var cache = { reviews: null, sales: {} };
+  var subs = {};
 
-  function getReviews() {
+  function load(k, fb) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : fb; } catch(e){ return fb; } }
+  function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+  function notify(t) { (subs[t]||[]).forEach(function(cb){ try{cb();}catch(e){} }); }
+  function on(t, cb) { (subs[t]=subs[t]||[]).push(cb); }
+
+  // Init Firebase with real-time sync
+  try {
+    if (typeof firebase !== 'undefined') {
+      firebase.initializeApp(FB_CONFIG);
+      db = firebase.firestore();
+      useFB = true;
+      db.collection('reviews').orderBy('date','desc').onSnapshot(function(snap){
+        cache.reviews = [];
+        snap.forEach(function(doc){ var d=doc.data(); d.id=doc.id; cache.reviews.push(d); });
+        save(K_REVIEWS, cache.reviews);
+        notify('reviews');
+      }, function(){ useFB = false; loadLocal(); });
+      db.collection('sales').onSnapshot(function(snap){
+        cache.sales = {};
+        snap.forEach(function(doc){ cache.sales[doc.id] = doc.data().count || 0; });
+        save(K_SALES, cache.sales);
+        notify('sales'); notify('reviews');
+      }, function(){});
+    }
+  } catch(e) { useFB = false; }
+  function loadLocal() {
     var r = load(K_REVIEWS, null);
     if (!r) { r = seed.slice(); save(K_REVIEWS, r); }
-    return r.slice().sort(function(a,b){ return new Date(b.date) - new Date(a.date); });
-  }
-  function getSales() {
-    var s = load(K_SALES, null);
-    if (!s) { s = {}; save(K_SALES, s); }
-    return s;
-  }
-
-  function addReview(data) {
-    // Validation
-    var name = (data.name||'').trim();
-    var text = (data.text||'').trim();
-    var stars = parseInt(data.stars, 10);
-    if (name.length < 2 || name.length > 30) return {ok:false, err:'الاسم خاصو يكون بين 2 و 30 حرف.'};
-    if (!stars || stars < 1 || stars > 5) return {ok:false, err:'اختار عدد النجوم (1-5).'};
-    if (text.length < 10) return {ok:false, err:'التعليق خاصو يكون 10 أحرف على الأقل.'};
-    if (text.length > 500) return {ok:false, err:'التعليق طويل بزاف (الحد 500 حرف).'};
-    // Spam protection: rate limit (1 per 3 min)
-    var last = parseInt(load(K_LAST, '0'), 10);
-    if (Date.now() - last < 3*60*1000) return {ok:false, err:'صبر شوية عاد صيفط تقييم آخر.'};
-    // Duplicate detection
-    var revs = getReviews();
-    for (var i=0;i<revs.length;i++) {
-      if (revs[i].name === name && revs[i].text === text) return {ok:false, err:'هاد التقييم موجود already.'};
-    }
-    var rev = {id:'r'+Date.now(), name:name, product:data.product||'', stars:stars, text:text, date:new Date().toISOString()};
-    revs.push(rev); save(K_REVIEWS, revs); save(K_LAST, String(Date.now()));
+    cache.reviews = r;
+    cache.sales = load(K_SALES, {});
     notify('reviews');
-    return {ok:true, review:rev};
+  }
+  if (!useFB) loadLocal();
+
+  function getReviews() {
+    if (!cache.reviews) return [];
+    return cache.reviews.slice().sort(function(a,b){ return new Date(b.date)-new Date(a.date); });
+  }
+  function getSales() { return cache.sales || {}; }
+  function salesFor(s) { return (cache.sales||{})[s] || 0; }
+
+  function addReview(data, cb) {
+    var name = (data.name||'').trim(), text = (data.text||'').trim();
+    var stars = parseInt(data.stars, 10);
+    if (name.length < 2 || name.length > 30) return cb({ok:false, err:'الاسم خاصو يكون بين 2 و 30 حرف.'});
+    if (!stars || stars < 1 || stars > 5) return cb({ok:false, err:'اختار عدد النجوم (1-5).'});
+    if (text.length < 10) return cb({ok:false, err:'التعليق خاصو يكون 10 أحرف على الأقل.'});
+    if (text.length > 500) return cb({ok:false, err:'التعليق طويل بزاف (الحد 500 حرف).'});
+    var last = parseInt(load(K_LAST,'0'), 10);
+    if (Date.now() - last < 3*60*1000) return cb({ok:false, err:'صبر شوية عاد صيفط تقييم آخر.'});
+    var revs = getReviews();
+    for (var i=0;i<revs.length;i++) if (revs[i].name===name && revs[i].text===text) return cb({ok:false, err:'هاد التقييم موجود already.'});
+    var rev = {name:name, product:data.product||'', stars:stars, text:text, date:new Date().toISOString()};
+    save(K_LAST, String(Date.now()));
+    if (useFB && db) {
+      db.collection('reviews').add(rev).then(function(){ cb({ok:true}); })
+        .catch(function(){ fallbackAdd(rev); cb({ok:true}); });
+    } else { fallbackAdd(rev); cb({ok:true}); }
+  }
+  function fallbackAdd(rev) {
+    rev.id = 'r'+Date.now();
+    var revs = getReviews(); revs.push(rev);
+    cache.reviews = revs; save(K_REVIEWS, revs); notify('reviews');
   }
 
   function productStats(short) {
-    var revs = getReviews().filter(function(r){ return r.product === short; });
+    var revs = getReviews().filter(function(r){ return r.product===short; });
     if (!revs.length) return {avg:0, count:0};
     var sum = revs.reduce(function(a,r){ return a+r.stars; }, 0);
     return {avg: Math.round(sum/revs.length*10)/10, count: revs.length};
@@ -1055,16 +1104,10 @@ var StoreDB = (function() {
     var sum = revs.reduce(function(a,r){ return a+r.stars; }, 0);
     return {avg: Math.round(sum/revs.length*10)/10, count: revs.length};
   }
-  function salesFor(short) { return getSales()[short] || 0; }
-
-  // Simple pub/sub for sync
-  var subs = {};
-  function notify(topic) { (subs[topic]||[]).forEach(function(cb){ try{cb();}catch(e){} }); }
-  function on(topic, cb) { (subs[topic] = subs[topic]||[]).push(cb); }
 
   return { getReviews:getReviews, addReview:addReview, getSales:getSales, salesFor:salesFor,
-           productStats:productStats, storeStats:storeStats, on:on,
-           getProductReviews:function(s){ return getReviews().filter(function(r){ return r.product===s; }); } };
+    productStats:productStats, storeStats:storeStats, on:on, isLive:function(){ return useFB; },
+    getProductReviews:function(s){ return getReviews().filter(function(r){ return r.product===s; }); } };
 })();
 
 /* ============ Review UI ============ */
@@ -1118,14 +1161,16 @@ function renderModalRating(card) {
   var short = card.getAttribute('data-short');
   var st = StoreDB.productStats(short);
   var sales = StoreDB.salesFor(short);
-  var box = document.getElementById('modalRating');
-  if (!box) return;
+  var starsEl = document.getElementById('modalStars');
+  var salesEl = document.getElementById('modalSales');
+  if (!starsEl || !salesEl) return;
   if (st.count) {
-    box.innerHTML = '<span class="stars">' + starStr(st.avg) + '</span><strong>' + st.avg + '/5</strong>'
-      + '<span> | ' + st.count + ' تقييم</span><span> | ' + sales + ' مبيعة</span>';
+    starsEl.innerHTML = '<span class="stars">' + starStr(st.avg) + '</span><strong>' + st.avg + '/5</strong>'
+      + '<span class="muted"> — ' + st.count + ' تقييماً</span>';
   } else {
-    box.innerHTML = '<span class="no-rev">لا توجد تقييمات بعد</span><span> | ' + sales + ' مبيعة</span>';
+    starsEl.innerHTML = '<span class="muted">لم يتم تقييمه بعد</span>';
   }
+  salesEl.innerHTML = '🛒 <strong>' + sales + '</strong> مبيعة';
   // Product reviews in modal
   var mr = document.getElementById('modalReviews');
   if (mr) {
@@ -1168,12 +1213,14 @@ document.addEventListener('DOMContentLoaded', function() {
   var btn = document.getElementById('revSubmit');
   if (btn) btn.addEventListener('click', function(){
     var msg = document.getElementById('revMsg');
-    var res = StoreDB.addReview({
+    btn.disabled = true;
+    StoreDB.addReview({
       name: document.getElementById('revName').value,
       product: document.getElementById('revProduct').value,
       stars: selectedStars,
       text: document.getElementById('revText').value
-    });
+    }, function(res){
+    btn.disabled = false;
     if (res.ok) {
       msg.className = 'rev-msg ok'; msg.textContent = 'شكراً! تقييمك تنشر بنجاح ✅';
       document.getElementById('revName').value = '';
@@ -1185,6 +1232,7 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
       msg.className = 'rev-msg err'; msg.textContent = res.err;
     }
+    });
   });
   // Show more/less
   var more = document.getElementById('showMoreReviews');
@@ -1194,6 +1242,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   renderReviews();
   StoreDB.on('reviews', function(){ renderReviews(); });
+  StoreDB.on('sales', function(){ renderReviews(); });
 });
 </script>
 </body>
