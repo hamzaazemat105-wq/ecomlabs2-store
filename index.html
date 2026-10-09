@@ -434,6 +434,8 @@
     .mstat strong { font-size: .95rem; }
     .mstat .muted { color: var(--muted); font-size: .85rem; }
     .mstat.sales { color: var(--text); font-weight: 700; }
+
+    .btn-sm { padding: 8px 16px; font-size: .82rem; min-height: 0; }
   </style>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -1157,6 +1159,26 @@ function renderReviews() {
     : 'لا توجد تقييمات بعد — كن أول من يقيّم!';
 }
 
+
+function renderModalReviews() {
+  var mr = document.getElementById('modalReviews');
+  if (!mr || !window._modalReviews) return;
+  var pr = window._modalReviews;
+  var show = window._modalRevExpanded ? pr : pr.slice(0, 1);
+  mr.innerHTML = show.map(function(r){
+    return '<div class="mr"><div class="stars">' + '★'.repeat(r.stars) + '☆'.repeat(5-r.stars) + '</div>'
+      + '<p>' + escHtml(r.text) + '</p><div class="who">' + escHtml(r.name) + ' — ' + fmtDate(r.date) + '</div></div>';
+  }).join('')
+  + (pr.length > 1 ? '<button class="btn btn-secondary btn-sm" id="modalMoreRev" style="margin-top:8px"><span>'
+    + (window._modalRevExpanded ? 'عرض أقل' : 'عرض المزيد (' + (pr.length-1) + ')') + '</span></button>' : '');
+  var btn = document.getElementById('modalMoreRev');
+  if (btn) btn.addEventListener('click', function(e){
+    e.stopPropagation();
+    window._modalRevExpanded = !window._modalRevExpanded;
+    renderModalReviews();
+  });
+}
+
 function renderModalRating(card) {
   var short = card.getAttribute('data-short');
   var st = StoreDB.productStats(short);
@@ -1171,14 +1193,13 @@ function renderModalRating(card) {
     starsEl.innerHTML = '<span class="muted">لم يتم تقييمه بعد</span>';
   }
   salesEl.innerHTML = '🛒 <strong>' + sales + '</strong> مبيعة';
-  // Product reviews in modal
+  // Product reviews in modal: show 1 + "more" button
   var mr = document.getElementById('modalReviews');
   if (mr) {
-    var pr = StoreDB.getProductReviews(short).slice(0, 5);
-    mr.innerHTML = pr.length ? pr.map(function(r){
-      return '<div class="mr"><div class="stars">' + '★'.repeat(r.stars) + '☆'.repeat(5-r.stars) + '</div>'
-        + '<p>' + escHtml(r.text) + '</p><div class="who">' + escHtml(r.name) + ' — ' + fmtDate(r.date) + '</div></div>';
-    }).join('') : '';
+    var pr = StoreDB.getProductReviews(short);
+    window._modalReviews = pr;
+    window._modalRevExpanded = false;
+    renderModalReviews();
   }
 }
 
