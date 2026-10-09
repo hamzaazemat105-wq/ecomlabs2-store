@@ -789,6 +789,9 @@
         <div><p class="eyebrow" data-ar="آراء العملاء" data-fr="Avis clients">آراء العملاء</p><h2 data-ar="شنو قالو علينا" data-fr="Ce qu'ils disent">شنو قالو علينا</h2>
         <p id="storeRating" class="store-rating"></p></div>
       </div>
+      <div id="stickyLess" style="display:none;position:sticky;top:10px;z-index:50;text-align:center;margin-bottom:10px">
+        <button class="btn btn-secondary btn-sm" id="stickyLessBtn"><span data-ar="▲ عرض أقل" data-fr="▲ Voir moins">▲ عرض أقل</span></button>
+      </div>
       <div class="reviews-grid" id="reviewsGrid"></div>
       <div style="text-align:center;margin-bottom:18px">
         <button class="btn btn-secondary" id="showMoreReviews" style="display:none"><span data-ar="عرض المزيد من الآراء" data-fr="Voir plus d'avis">عرض المزيد من الآراء</span> <span id="moreCount"></span></button>
@@ -1146,11 +1149,12 @@ function renderReviews() {
   // Show more/less
   var more = document.getElementById('showMoreReviews');
   var less = document.getElementById('showLessReviews');
+  var sticky = document.getElementById('stickyLess');
   if (revs.length > REVIEWS_SHOWN) {
-    if (reviewsExpanded) { more.style.display='none'; less.style.display=''; }
-    else { more.style.display=''; less.style.display='none';
+    if (reviewsExpanded) { more.style.display='none'; less.style.display=''; if(sticky) sticky.style.display=''; }
+    else { more.style.display=''; less.style.display='none'; if(sticky) sticky.style.display='none';
       document.getElementById('moreCount').textContent = '(' + (revs.length - REVIEWS_SHOWN) + ')'; }
-  } else { more.style.display='none'; less.style.display='none'; }
+  } else { more.style.display='none'; less.style.display='none'; if(sticky) sticky.style.display='none'; }
   // Store average
   var st = StoreDB.storeStats();
   var el = document.getElementById('storeRating');
@@ -1259,7 +1263,10 @@ document.addEventListener('DOMContentLoaded', function() {
   var more = document.getElementById('showMoreReviews');
   if (more) more.addEventListener('click', function(){ reviewsExpanded = true; renderReviews(); });
   var less = document.getElementById('showLessReviews');
-  if (less) less.addEventListener('click', function(){ reviewsExpanded = false; renderReviews(); document.getElementById('reviews').scrollIntoView({behavior:'smooth'}); });
+  function collapseReviews(){ reviewsExpanded = false; renderReviews(); document.getElementById('reviews').scrollIntoView({behavior:'smooth'}); }
+  if (less) less.addEventListener('click', collapseReviews);
+  var stickyBtn = document.getElementById('stickyLessBtn');
+  if (stickyBtn) stickyBtn.addEventListener('click', collapseReviews);
 
   renderReviews();
   StoreDB.on('reviews', function(){ renderReviews(); });
