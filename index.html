@@ -874,19 +874,16 @@
       var generalLinks = document.querySelectorAll('.whatsapp-general');
       var orderLinks = document.querySelectorAll('a.order-btn[data-product]');
 
-      // Log WhatsApp order clicks to Firestore for admin tracking
-      function logOrderClick(product, price) {
-        try {
-          if (typeof StoreDB !== 'undefined' && StoreDB.logOrder) StoreDB.logOrder(product, price);
-        } catch(e){}
-      }
+      // Every WhatsApp order click = +1 sale automatically (with session dedup)
       document.addEventListener('click', function(e){
         var a = e.target.closest ? e.target.closest('a[href*="wa.me"]') : null;
-        if (a) {
-          var p = a.getAttribute('data-product') || '';
-          var pr = a.getAttribute('data-price') || '';
-          if (p) logOrderClick(p, pr);
-        }
+        if (!a) return;
+        var p = a.getAttribute('data-product') || '';
+        var pr = a.getAttribute('data-price') || '';
+        if (!p) return;
+        try {
+          if (typeof StoreDB !== 'undefined' && StoreDB.recordSale) StoreDB.recordSale(p, pr);
+        } catch(err){}
       });
 
       function setWhatsAppLinks(lang) {
@@ -1130,11 +1127,22 @@ var StoreDB = (function() {
   return { getReviews:getReviews, addReview:addReview, getSales:getSales, salesFor:salesFor,
     productStats:productStats, storeStats:storeStats, on:on, isLive:function(){ return useFB; },
     getProductReviews:function(s){ return getReviews().filter(function(r){ return r.product===s; }); },
-    logOrder:function(product, price) {
-      if (!useFB || !db) return;
+    recordSale:function(product, price) {
+      if (!useFB || !db || !product) return;
+      // Dedup: one sale per product per session
+      try {
+        var k = 'sale_' + product;
+        if (sessionStorage.getItem(k)) return;
+        sessionStorage.setItem(k, '1');
+      } catch(e){}
+      // Atomic +1 increment (allowed by Firestore rules)
+      db.collection('sales').doc(product).update({
+        count: firebase.firestore.FieldValue.increment(1)
+      }).catch(function(){});
+      // Also log as order for admin records
       db.collection('orders').add({
-        product: product || '', price: price || '',
-        date: new Date().toISOString(), status: 'pending'
+        product: product, price: price || '',
+        date: new Date().toISOString(), status: 'confirmed'
       }).catch(function(){});
     } };
 })();

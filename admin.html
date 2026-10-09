@@ -57,7 +57,7 @@ input{width:100%;background:#25252f;border:1px solid #3a3a48;border-radius:10px;
 
 <div id="adminPanel">
 <div class="tabs">
-<div class="tab active" data-tab="orders">📦 الطلبات <span id="ordCount"></span></div>
+<div class="tab active" data-tab="orders">📦 سجل المبيعات <span id="ordCount"></span></div>
 <div class="tab" data-tab="reviews">⭐ التقييمات</div>
 <div class="tab" data-tab="sales">📊 المبيعات</div>
 </div>
@@ -171,21 +171,16 @@ function loadAll(){loadOrders();loadReviews();loadSales();}
 function loadOrders(){
 db.collection('orders').orderBy('date','desc').limit(50).onSnapshot(function(snap){
 var el=document.getElementById('tab-orders');
-var pending=0,html='';
+var html='',count=0;
 snap.forEach(function(doc){
 var o=doc.data();
-if(o.status==='pending')pending++;
+count++;
 html+='<div class="item"><strong>'+esc(o.product)+'</strong> — '+esc(o.price)+' MAD '
-+'<span class="badge '+(o.status==='pending'?'b-pending':'b-confirmed')+'">'+(o.status==='pending'?'بانتظار التأكيد':'مؤكد')+'</span>'
-+'<div class="meta">'+esc(fmtDate(o.date))+'</div>';
-if(o.status==='pending'){
-html+='<div class="actions"><button class="btn btn-green btn-sm" data-act="confirm" data-id="'+doc.id+'" data-prod="'+esc(o.product)+'">✓ تأكيد البيع (+1)</button></div>';
-}
-html+='</div>';
++'<span class="badge b-confirmed">مبيعة مؤكدة ✓</span>'
++'<div class="meta">'+esc(fmtDate(o.date))+'</div></div>';
 });
-document.getElementById('ordCount').textContent=pending?'('+pending+')':'';
-el.innerHTML=html||'<div class="card">لا توجد طلبات بعد. الطلبات الجديدة غادي تبان هنا ملي الكليان يكليكيو على زر الطلب.</div>';
-bindActions(el);
+document.getElementById('ordCount').textContent=count?'('+count+')':'';
+el.innerHTML=html||'<div class="card">لا توجد طلبات بعد. ملي كليان يكليكي على زر الطلب عبر واتساب، المبيعات كتزيد تلقائياً (+1) والطلب كيتسجل هنا.</div>';
 },function(err){
 document.getElementById('tab-orders').innerHTML='<div class="card err">خطأ: '+esc(err.message)+'</div>';
 });
@@ -245,21 +240,7 @@ for(var i=0;i<btns.length;i++){
 b.addEventListener('click',function(){
 var act=b.getAttribute('data-act');
 var id=b.getAttribute('data-id');
-if(act==='confirm'){
-var prod=b.getAttribute('data-prod');
-if(!confirm('تأكيد بيع "'+prod+'"?\nغادي تزيد المبيعات بـ 1.'))return;
-var oref=db.collection('orders').doc(id);
-var sref=db.collection('sales').doc(prod);
-db.runTransaction(function(tx){
-return tx.get(sref).then(function(sdoc){
-var cur=sdoc.exists?(sdoc.data().count||0):0;
-tx.update(oref,{status:'confirmed',confirmedAt:new Date().toISOString()});
-tx.set(sref,{count:cur+1},{merge:true});
-});
-}).then(function(){alert('تم تأكيد البيع ✅');})
-.catch(function(e){alert('خطأ: '+e.message);});
-}
-else if(act==='verify'){
+if(act==='verify'){
 var v=b.getAttribute('data-v')==='1';
 db.collection('reviews').doc(id).update({verified:v})
 .catch(function(e){alert('خطأ: '+e.message);});
