@@ -919,6 +919,10 @@ src="https://www.facebook.com/tr?id=4646748305562750&ev=PageView&noscript=1"
         try {
           if (typeof StoreDB !== 'undefined' && StoreDB.recordSale) StoreDB.recordSale(key, pr);
         } catch(err){}
+        // Meta Pixel: WhatsApp order click = Lead (purchase intent for Sales campaigns)
+        try {
+          if (typeof fbq !== 'undefined') fbq('track', 'Lead', {content_name: key, value: pr, currency: 'MAD'});
+        } catch(err){}
       });
 
       function setWhatsAppLinks(lang) {
