@@ -930,10 +930,6 @@ src="https://www.facebook.com/tr?id=1065466803216196&ev=PageView&noscript=1"
         try {
           if (typeof fbq !== 'undefined') fbq('track', 'Lead', {content_name: key, value: pr, currency: 'MAD'});
         } catch(err){}
-        // Meta Pixel: WhatsApp order click = Purchase (added at Hamza's order 2026-11-16)
-        try {
-          if (typeof fbq !== 'undefined') fbq('track', 'Purchase', {value: 149, currency: 'MAD'});
-        } catch(err){}
       });
 
       function setWhatsAppLinks(lang) {
