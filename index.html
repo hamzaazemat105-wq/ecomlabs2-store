@@ -926,7 +926,10 @@ src="https://www.facebook.com/tr?id=1065466803216196&ev=PageView&noscript=1"
         try {
           if (typeof StoreDB !== 'undefined' && StoreDB.recordSale) StoreDB.recordSale(key, pr);
         } catch(err){}
-        // Meta Pixel: no InitiateCheckout/Contact on WhatsApp clicks anymore (removed 2026-11-26 at Hamza's order — Meta counted every click as a conversion while most clickers never send a message; PageView only now).
+        // Meta Pixel: WhatsApp order click = OrderIntent (custom event, added 2026-11-26 at Hamza's order — honest order-intent signal for the website Sales campaign; NOT a Purchase/Checkout, so Meta reports it as order intent, not as a sale).
+        try {
+          if (typeof fbq !== 'undefined') fbq('trackCustom', 'OrderIntent', {content_name: key, value: pr, currency: 'MAD'});
+        } catch(err){}
       });
 
       function setWhatsAppLinks(lang) {
