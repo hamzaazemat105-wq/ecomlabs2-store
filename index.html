@@ -926,9 +926,9 @@ src="https://www.facebook.com/tr?id=1065466803216196&ev=PageView&noscript=1"
         try {
           if (typeof StoreDB !== 'undefined' && StoreDB.recordSale) StoreDB.recordSale(key, pr);
         } catch(err){}
-        // Meta Pixel: WhatsApp order click = OrderIntent (custom event, added 2026-11-26 at Hamza's order — honest order-intent signal for the website Sales campaign; NOT a Purchase/Checkout, so Meta reports it as order intent, not as a sale).
+        // Meta Pixel: WhatsApp order click = WhatsAppClick (custom event — purchase INTENT only, never a Purchase; fires once per click on a product order button; product ID in content_ids).
         try {
-          if (typeof fbq !== 'undefined') fbq('trackCustom', 'OrderIntent', {content_name: key, value: pr, currency: 'MAD'});
+          if (typeof fbq !== 'undefined') fbq('trackCustom', 'WhatsAppClick', {content_name: key, content_ids: [key], content_type: 'product', value: pr, currency: 'MAD'});
         } catch(err){}
       });
 
@@ -1007,6 +1007,10 @@ src="https://www.facebook.com/tr?id=1065466803216196&ev=PageView&noscript=1"
         document.getElementById('modalBest').style.display = card.getAttribute('data-bestseller') === '1' ? '' : 'none';
         if (typeof renderModalRating === 'function') renderModalRating(card);
         setWhatsAppLinks(document.body.getAttribute('data-lang') || 'ar');
+        // Meta Pixel: product view = ViewContent (once per modal open; product ID in content_ids).
+        try {
+          if (typeof fbq !== 'undefined') fbq('track', 'ViewContent', {content_name: pShort, content_ids: [pShort], content_type: 'product', value: btn.getAttribute('data-price'), currency: 'MAD'});
+        } catch(err){}
         modal.classList.add('open');
         document.body.style.overflow = 'hidden';
       }
